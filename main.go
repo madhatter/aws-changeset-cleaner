@@ -127,9 +127,35 @@ func deleteChangeSets(profile string, stackName string) {
 	}
 }
 
-func main() {
-	sets := fetchChangeSets(aws.String("dv-live-developer"), aws.String("opal-inventory-ecr-live"))
+func deleteChangeSetsTimeGap(profile *string, sets *ChangeSets, limit *time.Time) error {
+	for k, _ := range sets.Sets {
+		fmt.Println(sets.Sets[k].CreationTime)
+	}
 
-	fmt.Println(sets.Sets[1].ChangeSetId)
+	fmt.Println(limit.Format("15:04:05"))
+	return nil
+}
+
+func deleteChangeSetsKeep(profile *string, sets *ChangeSets, keep *int) error {
+	for index := 0; index < len(sets.Sets)-*keep; index++ {
+		fmt.Println(sets.Sets[index].CreationTime)
+	}
+
+	return nil
+}
+
+func main() {
+	//dateForLimit := time.Now()
+	keep := 10
+
+	sets := fetchChangeSets(aws.String("dv-live-developer"), aws.String("opal-inventory-ecr-live"))
+	//err := deleteChangeSetsTimeGap(aws.String("dv-live-developer"), &sets, &dateForLimit)
+	err := deleteChangeSetsKeep(aws.String("dv-live-developer"), &sets, &keep)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	//fmt.Println(sets.Sets[1].ChangeSetId)
 	//deleteChangeSets("dv-live-developer", "opal-inventory-ecr-live")
 }
