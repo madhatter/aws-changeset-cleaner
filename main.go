@@ -30,13 +30,7 @@ func (set *ChangeSet) Test() string {
 }
 
 // fetches all the stacks
-func fetchChangeSets(profile *string, stackName *string) ChangeSets {
-	sess, _ := session.NewSessionWithOptions(session.Options{
-		Config:  aws.Config{Region: aws.String("eu-central-1")},
-		Profile: *profile,
-	})
-
-	cfSvc := cloudformation.New(sess)
+func fetchChangeSets(cfSvc *cloudformation.CloudFormation, stackName *string) ChangeSets {
 	lcsInput := cloudformation.ListChangeSetsInput{
 		StackName: stackName,
 	}
@@ -79,13 +73,7 @@ func fetchChangeSets(profile *string, stackName *string) ChangeSets {
 }
 
 // deletes all the changeSets for a given stackName
-func deleteChangeSets(profile string, stackName string) {
-	sess, _ := session.NewSessionWithOptions(session.Options{
-		Config:  aws.Config{Region: aws.String("eu-central-1")},
-		Profile: profile,
-	})
-
-	cfSvc := cloudformation.New(sess)
+func deleteChangeSets(cfSvc *cloudformation.CloudFormation, stackName string) {
 	lcsInput := cloudformation.ListChangeSetsInput{
 		StackName: aws.String("opal-inventory-ecr-live"),
 	}
@@ -127,7 +115,7 @@ func deleteChangeSets(profile string, stackName string) {
 	}
 }
 
-func deleteChangeSetsTimeGap(profile *string, sets *ChangeSets, limit *time.Time) error {
+func deleteChangeSetsTimeGap(cfSvc *cloudformation.CloudFormation, sets *ChangeSets, limit *time.Time) error {
 	for k, _ := range sets.Sets {
 		fmt.Println(sets.Sets[k].CreationTime)
 	}
@@ -136,7 +124,7 @@ func deleteChangeSetsTimeGap(profile *string, sets *ChangeSets, limit *time.Time
 	return nil
 }
 
-func deleteChangeSetsKeep(profile *string, sets *ChangeSets, keep *int) error {
+func deleteChangeSetsKeep(cfSvc *cloudformation.CloudFormation, sets *ChangeSets, keep *int) error {
 	for index := 0; index < len(sets.Sets)-*keep; index++ {
 		fmt.Println(sets.Sets[index].CreationTime)
 	}
@@ -147,10 +135,17 @@ func deleteChangeSetsKeep(profile *string, sets *ChangeSets, keep *int) error {
 func main() {
 	//dateForLimit := time.Now()
 	keep := 10
+	profile := aws.String("dv-live-developer")
 
-	sets := fetchChangeSets(aws.String("dv-live-developer"), aws.String("opal-inventory-ecr-live"))
+	sess, _ := session.NewSessionWithOptions(session.Options{
+		Config:  aws.Config{Region: aws.String("eu-central-1")},
+		Profile: *profile,
+	})
+	cfSvc := cloudformation.New(sess)
+
+	sets := fetchChangeSets(cfSvc, aws.String("opal-inventory-ecr-live"))
 	//err := deleteChangeSetsTimeGap(aws.String("dv-live-developer"), &sets, &dateForLimit)
-	err := deleteChangeSetsKeep(aws.String("dv-live-developer"), &sets, &keep)
+	err := deleteChangeSetsKeep(cfSvc, &sets, &keep)
 
 	if err != nil {
 		fmt.Println(err)
