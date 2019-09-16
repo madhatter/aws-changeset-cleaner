@@ -28,6 +28,21 @@ type ChangeSets struct {
 	Sets []ChangeSet
 }
 
+type Stack struct {
+	CreationTime        time.Time
+	DeletionTime        time.Time
+	DriftInformation    cloudformation.StackDriftInformationSummary
+	LastUpdatedTime     time.Time
+	StackId             string
+	StackName           string
+	StackStatus         string
+	TemplateDescription string
+}
+
+type Stacks struct {
+	Stacks []Stack
+}
+
 func (set *ChangeSet) Test() string {
 	return "Test"
 }
@@ -164,6 +179,49 @@ func deleteChangeSetsKeep(cfSvc *cloudformation.CloudFormation, sets *ChangeSets
 	return nil
 }
 
+func fetchStacks(cfSvc *cloudformation.CloudFormation) (Stacks, error) {
+	lsInput := cloudformation.ListStacksInput{}
+
+	ntoken := "1"
+
+	var stack Stack
+	var stacks Stacks
+
+	for ntoken != "" {
+		output, err := cfSvc.ListStacks(&lsInput)
+
+		if err != nil {
+			fmt.Println("Error", err)
+			return stacks, err
+		} else {
+			if output.NextToken != nil {
+				ntoken = *output.NextToken
+				lsInput.NextToken = &ntoken
+			} else {
+				ntoken = ""
+			}
+
+			for _, v := range output.StackSummaries {
+				//fmt.Println(*v)
+				stack.CreationTime = *v.CreationTime
+				if *v.StackStatus == "DELETE_COMPLETE" {
+					stack.DeletionTime = *v.DeletionTime
+				}
+				stack.DriftInformation = *v.DriftInformation
+				if *v.StackStatus == "UPDATE_COMPLETE" {
+					stack.LastUpdatedTime = *v.LastUpdatedTime
+				}
+				stack.StackId = *v.StackId
+				stack.StackName = *v.StackName
+				stack.StackStatus = *v.StackStatus
+				stacks.Stacks = append(stacks.Stacks, stack)
+			}
+		}
+	}
+
+	return stacks, nil
+}
+
 // the main function
 func main() {
 	//dateForLimit := time.Now()
@@ -171,6 +229,15 @@ func main() {
 	profile := aws.String("dv-live-developer")
 
 	createClient(profile)
+
+	stacks, err := fetchStacks(cfSvc)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		for _, v := range stacks.Stacks {
+			fmt.Println(v.StackName)
+		}
+	}
 
 	sets, err := fetchChangeSets(cfSvc, aws.String("opal-inventory-ecr-live"))
 
@@ -183,7 +250,4 @@ func main() {
 			fmt.Println(err)
 		}
 	}
-
-	//fmt.Println(sets.Sets[1].ChangeSetId)
-	//deleteChangeSets("dv-live-developer", "opal-inventory-ecr-live")
 }
