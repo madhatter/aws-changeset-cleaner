@@ -9,6 +9,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 )
 
+var sess *session.Session
+var cfSvc *cloudformation.CloudFormation
+
 type ChangeSet struct {
 	ChangeSetId     string    `json:"ChangeSetId"`
 	ChangeSetName   string    `json:"ChangeSetName"`
@@ -27,6 +30,15 @@ type ChangeSets struct {
 
 func (set *ChangeSet) Test() string {
 	return "Test"
+}
+
+// initializes the client for cloudformation
+func createClient(profile *string) {
+	sess, _ = session.NewSessionWithOptions(session.Options{
+		Config:  aws.Config{Region: aws.String("eu-central-1")},
+		Profile: *profile,
+	})
+	cfSvc = cloudformation.New(sess)
 }
 
 // fetches all the stacks
@@ -158,11 +170,7 @@ func main() {
 	keep := 10
 	profile := aws.String("dv-live-developer")
 
-	sess, _ := session.NewSessionWithOptions(session.Options{
-		Config:  aws.Config{Region: aws.String("eu-central-1")},
-		Profile: *profile,
-	})
-	cfSvc := cloudformation.New(sess)
+	createClient(profile)
 
 	sets, err := fetchChangeSets(cfSvc, aws.String("opal-inventory-ecr-live"))
 
