@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bufio"
+	"flag"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -9,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 )
 
+var profile string
 var sess *session.Session
 var cfSvc *cloudformation.CloudFormation
 
@@ -222,13 +226,37 @@ func fetchStacks(cfSvc *cloudformation.CloudFormation) (Stacks, error) {
 	return stacks, nil
 }
 
+func parseCLIArguments() {
+	profilePtr := flag.String("profile", "", "AWS profile to use.")
+	stackPtr := flag.String("stack", "all", "Stack to clean {all stacks|<stackname>};.")
+	flag.Parse()
+
+	if *profilePtr == "" {
+		fmt.Println("No profile set.")
+		os.Exit(3)
+	} else {
+		profile = *profilePtr
+	}
+
+	if *stackPtr == "all" {
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Println()
+		fmt.Print("Processing on all stacks. Deleting all failed changesets on _all_ stacks. Continue (y/n)? ")
+		text, _ := reader.ReadString('\n')
+		if text != "y" {
+			fmt.Println("Coward.")
+			os.Exit(3)
+		}
+	}
+}
+
 // the main function
 func main() {
 	//dateForLimit := time.Now()
+	parseCLIArguments()
 	keep := 10
-	profile := aws.String("dv-live-developer")
 
-	createClient(profile)
+	createClient(&profile)
 
 	stacks, err := fetchStacks(cfSvc)
 	if err != nil {
