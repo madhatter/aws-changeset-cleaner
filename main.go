@@ -15,6 +15,8 @@ import (
 var profile string
 var processall = true
 var stackToClean string
+var keep = 10
+var verbose = false
 var sess *session.Session
 var cfSvc *cloudformation.CloudFormation
 
@@ -54,9 +56,14 @@ func (set *ChangeSet) Test() string {
 }
 
 // initializes the client for cloudformation
-func createClient(profile *string) {
+func createClient(profile *string, verbose bool) {
+	config := aws.Config{Region: aws.String("eu-central-1"), MaxRetries: aws.Int(15)}
+	if verbose == true {
+		config.WithLogLevel(aws.LogDebugWithRequestRetries)
+	}
+
 	sess, _ = session.NewSessionWithOptions(session.Options{
-		Config:  aws.Config{Region: aws.String("eu-central-1")},
+		Config:  config,
 		Profile: *profile,
 	})
 	cfSvc = cloudformation.New(sess)
@@ -229,12 +236,15 @@ func fetchStacks(cfSvc *cloudformation.CloudFormation) (Stacks, error) {
 }
 
 func parseCLIArguments() {
-	profilePtr := flag.String("profile", "", "AWS profile to use.")
-	stackPtr := flag.String("stack", "all", "Stack to clean {all stacks|<stackname>};.")
+	profilePtr := flag.String("profile", "", "AWS profile to use. (Required)")
+	stackPtr := flag.String("stack", "all", "Stack to clean {all stacks|<stackname>}.")
+	keepPtr := flag.Int("keep", 10, "Number of changesets to keep.")
+	verbosePtr := flag.Bool("verbose", false, "Verbose logging.")
 	flag.Parse()
 
 	if *profilePtr == "" {
 		fmt.Println("No profile set.")
+		flag.PrintDefaults()
 		os.Exit(3)
 	} else {
 		profile = *profilePtr
@@ -253,6 +263,9 @@ func parseCLIArguments() {
 		processall = false
 		stackToClean = *stackPtr
 	}
+
+	keep = *keepPtr
+	verbose = *verbosePtr
 }
 
 func cleanUpAllStacks(keep *int) error {
@@ -284,9 +297,8 @@ func cleanUpAllStacks(keep *int) error {
 // the main function
 func main() {
 	parseCLIArguments()
-	keep := 10
 
-	createClient(&profile)
+	createClient(&profile, verbose)
 
 	if processall == true {
 		err := cleanUpAllStacks(&keep)
