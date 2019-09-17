@@ -13,6 +13,8 @@ import (
 )
 
 var profile string
+var processall = true
+var stackToClean string
 var sess *session.Session
 var cfSvc *cloudformation.CloudFormation
 
@@ -74,7 +76,7 @@ func fetchChangeSets(cfSvc *cloudformation.CloudFormation, stackName *string) (C
 		output, err := cfSvc.ListChangeSets(&lcsInput)
 
 		if err != nil {
-			fmt.Println("Error", err)
+			fmt.Println("Error: ", err)
 			return changesets, err
 		} else {
 			if output.NextToken != nil {
@@ -243,39 +245,64 @@ func parseCLIArguments() {
 		fmt.Println()
 		fmt.Print("Processing on all stacks. Deleting all failed changesets on _all_ stacks. Continue (y/n)? ")
 		text, _ := reader.ReadString('\n')
-		if text != "y" {
+		if text != "y\n" {
 			fmt.Println("Coward.")
 			os.Exit(3)
 		}
+	} else {
+		processall = false
+		stackToClean = *stackPtr
 	}
+}
+
+func cleanUpAllStacks(keep *int) error {
+	stacks, err := fetchStacks(cfSvc)
+
+	if err != nil {
+		return err
+	} else {
+		for _, v := range stacks.Stacks {
+			if v.StackStatus != "DELETE_COMPLETE" {
+				fmt.Println(v.StackName)
+				sets, err := fetchChangeSets(cfSvc, aws.String(v.StackName))
+				if err != nil {
+					return err
+				} else {
+					err := deleteChangeSetsKeep(cfSvc, &sets, keep)
+
+					if err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+
+	return nil
 }
 
 // the main function
 func main() {
-	//dateForLimit := time.Now()
 	parseCLIArguments()
 	keep := 10
 
 	createClient(&profile)
 
-	stacks, err := fetchStacks(cfSvc)
-	if err != nil {
-		fmt.Println(err)
-	} else {
-		for _, v := range stacks.Stacks {
-			fmt.Println(v.StackName)
-		}
-	}
-
-	sets, err := fetchChangeSets(cfSvc, aws.String("opal-inventory-ecr-live"))
-
-	if err != nil {
-		fmt.Println(err)
-	} else {
-		err := deleteChangeSetsKeep(cfSvc, &sets, &keep)
-
+	if processall == true {
+		err := cleanUpAllStacks(&keep)
 		if err != nil {
 			fmt.Println(err)
+		}
+	} else {
+		sets, err := fetchChangeSets(cfSvc, &stackToClean)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			err := deleteChangeSetsKeep(cfSvc, &sets, &keep)
+
+			if err != nil {
+				fmt.Println(err)
+			}
 		}
 	}
 }
