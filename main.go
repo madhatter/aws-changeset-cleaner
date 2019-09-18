@@ -109,7 +109,7 @@ func fetchChangeSets(cfSvc *cloudformation.CloudFormation, stackName *string) (C
 		}
 	}
 
-	fmt.Printf("%v failed changesets found.\n", len(changesets.Sets))
+	fmt.Printf("%s: %v failed changesets found.\n", changesets.Sets[len(changesets.Sets)-1].StackName, len(changesets.Sets))
 	return changesets, nil
 }
 
@@ -167,7 +167,7 @@ func deleteChangeSetsTimeGap(cfSvc *cloudformation.CloudFormation, sets *ChangeS
 }
 
 // deletes changesets in a given collection but keeping an also given number
-func deleteChangeSetsKeep(cfSvc *cloudformation.CloudFormation, sets *ChangeSets, keep *int) error {
+func deleteChangeSetsKeep(cfSvc *cloudformation.CloudFormation, sets *ChangeSets, keep *int) {
 	for index := 0; index < len(sets.Sets)-*keep; index++ {
 		if sets.Sets[index].Status == "FAILED" {
 			csName := sets.Sets[index].ChangeSetName
@@ -181,16 +181,13 @@ func deleteChangeSetsKeep(cfSvc *cloudformation.CloudFormation, sets *ChangeSets
 				StackName:     &stack,
 			}
 
-			req, err := cfSvc.DeleteChangeSet(&dcsInput)
+			_, err := cfSvc.DeleteChangeSet(&dcsInput)
 
 			if err != nil {
-				fmt.Println(req)
-				return err
+				fmt.Println(err)
 			}
 		}
 	}
-
-	return nil
 }
 
 func fetchStacks(cfSvc *cloudformation.CloudFormation) (Stacks, error) {
@@ -281,11 +278,7 @@ func cleanUpAllStacks(keep *int) error {
 				if err != nil {
 					return err
 				} else {
-					err := deleteChangeSetsKeep(cfSvc, &sets, keep)
-
-					if err != nil {
-						return err
-					}
+					go deleteChangeSetsKeep(cfSvc, &sets, keep)
 				}
 			}
 		}
@@ -310,11 +303,7 @@ func main() {
 		if err != nil {
 			fmt.Println(err)
 		} else {
-			err := deleteChangeSetsKeep(cfSvc, &sets, &keep)
-
-			if err != nil {
-				fmt.Println(err)
-			}
+			deleteChangeSetsKeep(cfSvc, &sets, &keep)
 		}
 	}
 }
