@@ -109,6 +109,7 @@ func fetchChangeSets(cfSvc *cloudformation.CloudFormation, stackName *string) (C
 		}
 	}
 
+	fmt.Printf("%v failed changesets found.\n", len(changesets.Sets))
 	return changesets, nil
 }
 
@@ -276,7 +277,6 @@ func cleanUpAllStacks(keep *int) error {
 	} else {
 		for _, v := range stacks.Stacks {
 			if v.StackStatus != "DELETE_COMPLETE" {
-				fmt.Println(v.StackName)
 				sets, err := fetchChangeSets(cfSvc, aws.String(v.StackName))
 				if err != nil {
 					return err
