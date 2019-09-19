@@ -3,7 +3,7 @@ A small tool to delete failed cloudformation changesets
 
 ## Purpose
 When using the aws cli to deploy cloudformation templates without changes you generate changesets that are marked as failed.
-It seems there is an undocumented hardlimit of 1000 (failed?) changesets. If you hit that you are not able to deploy to that stack anymore.
+It seems there is an undocumented hard limit of 1000 (failed?) changesets. If you hit that you are not able to deploy to that stack anymore.
 
 This cli tool deletes those changesets. There also is a flag for the paranoid to keep a number of those and just delete the rest.
 
