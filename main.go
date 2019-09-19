@@ -21,15 +21,15 @@ var sess *session.Session
 var cfSvc *cloudformation.CloudFormation
 
 type ChangeSet struct {
-	changeSetId     string    `json:"ChangeSetId"`
-	changeSetName   string    `json:"ChangeSetName"`
-	creationTime    time.Time `json:"CreationTime"`
-	description     string    `json:"Description"`
-	executionStatus string    `json:"ExecutionStatus"`
-	stackId         string    `json:"StackId"`
-	stackName       string    `json:"StackName"`
-	status          string    `json:"Status"`
-	statusReason    string    `json:"StatusReason"`
+	changeSetId     string
+	changeSetName   string
+	creationTime    time.Time
+	description     string
+	executionStatus string
+	stackId         string
+	stackName       string
+	status          string
+	statusReason    string
 }
 
 type ChangeSets struct {
