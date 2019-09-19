@@ -20,39 +20,39 @@ var verbose = false
 var sess *session.Session
 var cfSvc *cloudformation.CloudFormation
 
+// ChangeSet is public struct to store changesets
 type ChangeSet struct {
-	changeSetId     string
+	changeSetID     string
 	changeSetName   string
 	creationTime    time.Time
 	description     string
 	executionStatus string
-	stackId         string
+	stackID         string
 	stackName       string
 	status          string
 	statusReason    string
 }
 
+// ChangeSets is public collection of ChangeSets
 type ChangeSets struct {
 	sets []ChangeSet
 }
 
+// Stack to store information about the cloudformation stack
 type Stack struct {
 	creationTime        time.Time
 	deletionTime        time.Time
 	driftInformation    cloudformation.StackDriftInformationSummary
 	lastUpdatedTime     time.Time
-	stackId             string
+	stackID             string
 	stackName           string
 	stackStatus         string
 	templateDescription string
 }
 
+// Stacks is public collection of Stacks
 type Stacks struct {
 	stacks []Stack
-}
-
-func (set *ChangeSet) Test() string {
-	return "Test"
 }
 
 // initializes the client for cloudformation
@@ -85,27 +85,27 @@ func fetchChangeSets(cfSvc *cloudformation.CloudFormation, stackName *string) (C
 		if err != nil {
 			fmt.Println("Error: ", err)
 			return changesets, err
+		}
+
+		if output.NextToken != nil {
+			ntoken = *output.NextToken
+			lcsInput.NextToken = &ntoken
 		} else {
-			if output.NextToken != nil {
-				ntoken = *output.NextToken
-				lcsInput.NextToken = &ntoken
-			} else {
-				ntoken = ""
-			}
+			ntoken = ""
+		}
 
-			for _, v := range output.Summaries {
-				changeset.changeSetId = *v.ChangeSetId
-				changeset.changeSetName = *v.ChangeSetName
-				changeset.creationTime = *v.CreationTime
-				changeset.description = *v.Description
-				changeset.executionStatus = *v.ExecutionStatus
-				changeset.stackId = *v.StackId
-				changeset.stackName = *v.StackName
-				changeset.status = *v.Status
-				changeset.statusReason = *v.StatusReason
+		for _, v := range output.Summaries {
+			changeset.changeSetID = *v.ChangeSetId
+			changeset.changeSetName = *v.ChangeSetName
+			changeset.creationTime = *v.CreationTime
+			changeset.description = *v.Description
+			changeset.executionStatus = *v.ExecutionStatus
+			changeset.stackID = *v.StackId
+			changeset.stackName = *v.StackName
+			changeset.status = *v.Status
+			changeset.statusReason = *v.StatusReason
 
-				changesets.sets = append(changesets.sets, changeset)
-			}
+			changesets.sets = append(changesets.sets, changeset)
 		}
 	}
 
@@ -134,7 +134,7 @@ func deleteChangeSets(cfSvc *cloudformation.CloudFormation, stackName string) {
 				ntoken = ""
 			}
 
-			for i, _ := range output.Summaries {
+			for i := range output.Summaries {
 				if *output.Summaries[i].Status == "FAILED" {
 					csName := *output.Summaries[i].ChangeSetName
 					fmt.Println(csName)
@@ -158,7 +158,7 @@ func deleteChangeSets(cfSvc *cloudformation.CloudFormation, stackName string) {
 
 // deletes changeset in a given collection but keeping those newer than the given time
 func deleteChangeSetsTimeGap(cfSvc *cloudformation.CloudFormation, sets *ChangeSets, limit *time.Time) error {
-	for k, _ := range sets.sets {
+	for k := range sets.sets {
 		fmt.Println(sets.sets[k].creationTime)
 	}
 
@@ -204,29 +204,28 @@ func fetchStacks(cfSvc *cloudformation.CloudFormation) (Stacks, error) {
 		if err != nil {
 			fmt.Println("Error", err)
 			return stacks, err
+		}
+		if output.NextToken != nil {
+			ntoken = *output.NextToken
+			lsInput.NextToken = &ntoken
 		} else {
-			if output.NextToken != nil {
-				ntoken = *output.NextToken
-				lsInput.NextToken = &ntoken
-			} else {
-				ntoken = ""
-			}
+			ntoken = ""
+		}
 
-			for _, v := range output.StackSummaries {
-				//fmt.Println(*v)
-				stack.creationTime = *v.CreationTime
-				if *v.StackStatus == "DELETE_COMPLETE" {
-					stack.deletionTime = *v.DeletionTime
-				}
-				stack.driftInformation = *v.DriftInformation
-				if *v.StackStatus == "UPDATE_COMPLETE" {
-					stack.lastUpdatedTime = *v.LastUpdatedTime
-				}
-				stack.stackId = *v.StackId
-				stack.stackName = *v.StackName
-				stack.stackStatus = *v.StackStatus
-				stacks.stacks = append(stacks.stacks, stack)
+		for _, v := range output.StackSummaries {
+			//fmt.Println(*v)
+			stack.creationTime = *v.CreationTime
+			if *v.StackStatus == "DELETE_COMPLETE" {
+				stack.deletionTime = *v.DeletionTime
 			}
+			stack.driftInformation = *v.DriftInformation
+			if *v.StackStatus == "UPDATE_COMPLETE" {
+				stack.lastUpdatedTime = *v.LastUpdatedTime
+			}
+			stack.stackID = *v.StackId
+			stack.stackName = *v.StackName
+			stack.stackStatus = *v.StackStatus
+			stacks.stacks = append(stacks.stacks, stack)
 		}
 	}
 
@@ -271,16 +270,15 @@ func cleanUpAllStacks(keep *int) error {
 
 	if err != nil {
 		return err
-	} else {
-		for _, v := range stacks.stacks {
-			if v.stackStatus != "DELETE_COMPLETE" {
-				sets, err := fetchChangeSets(cfSvc, aws.String(v.stackName))
-				if err != nil {
-					return err
-				} else {
-					go deleteChangeSetsKeep(cfSvc, &sets, keep)
-				}
+	}
+
+	for _, v := range stacks.stacks {
+		if v.stackStatus != "DELETE_COMPLETE" {
+			sets, err := fetchChangeSets(cfSvc, aws.String(v.stackName))
+			if err != nil {
+				return err
 			}
+			go deleteChangeSetsKeep(cfSvc, &sets, keep)
 		}
 	}
 
