@@ -1,10 +1,7 @@
 package main
 
 import (
-	"bufio"
-	"flag"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -12,11 +9,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 )
 
-var profile string
-var processall = true
-var stackToClean string
-var keep = 10
-var verbose = false
 var sess *session.Session
 var cfSvc *cloudformation.CloudFormation
 
@@ -232,39 +224,6 @@ func fetchStacks(cfSvc *cloudformation.CloudFormation) (Stacks, error) {
 	return stacks, nil
 }
 
-func parseCLIArguments() {
-	profilePtr := flag.String("profile", "", "AWS profile to use. (Required)")
-	stackPtr := flag.String("stack", "all", "Stack to clean {all stacks|<stackname>}.")
-	keepPtr := flag.Int("keep", 10, "Number of changesets to keep.")
-	verbosePtr := flag.Bool("verbose", false, "Verbose logging.")
-	flag.Parse()
-
-	if *profilePtr == "" {
-		fmt.Println("No profile set.")
-		flag.PrintDefaults()
-		os.Exit(3)
-	} else {
-		profile = *profilePtr
-	}
-
-	if *stackPtr == "all" {
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Println()
-		fmt.Print("Processing on all stacks. Deleting all failed changesets on _all_ stacks. Continue (y/n)? ")
-		text, _ := reader.ReadString('\n')
-		if text != "y\n" {
-			fmt.Println("Coward.")
-			os.Exit(3)
-		}
-	} else {
-		processall = false
-		stackToClean = *stackPtr
-	}
-
-	keep = *keepPtr
-	verbose = *verbosePtr
-}
-
 func cleanUpAllStacks(keep *int) error {
 	stacks, err := fetchStacks(cfSvc)
 
@@ -287,21 +246,22 @@ func cleanUpAllStacks(keep *int) error {
 
 // the main function
 func main() {
-	parseCLIArguments()
+	config := NewCleanerConfig()
+	config.parseCLIArguments()
 
-	createClient(&profile, verbose)
+	createClient(&config.profile, config.verbose)
 
-	if processall == true {
-		err := cleanUpAllStacks(&keep)
+	if config.processAll == true {
+		err := cleanUpAllStacks(&config.keep)
 		if err != nil {
 			fmt.Println(err)
 		}
 	} else {
-		sets, err := fetchChangeSets(cfSvc, &stackToClean)
+		sets, err := fetchChangeSets(cfSvc, &config.stackToClean)
 		if err != nil {
 			fmt.Println(err)
 		} else {
-			deleteChangeSetsKeep(cfSvc, &sets, &keep)
+			deleteChangeSetsKeep(cfSvc, &sets, &config.keep)
 		}
 	}
 }
