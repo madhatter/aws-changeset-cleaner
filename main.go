@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bufio"
+	"flag"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -248,6 +251,24 @@ func cleanUpAllStacks(keep *int) error {
 func main() {
 	config := NewCleanerConfig()
 	config.parseCLIArguments()
+
+	// check user input on command line flags
+	if err := config.validate(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		flag.Usage()
+		os.Exit(1)
+	}
+
+	if config.processAll {
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Println()
+		fmt.Print("Processing on all stacks. Deleting all failed changesets on _all_ stacks. Continue (y/n)? ")
+		text, _ := reader.ReadString('\n')
+		if text != "y\n" {
+			fmt.Println("Coward.")
+			os.Exit(3)
+		}
+	}
 
 	createClient(&config.profile, config.verbose)
 

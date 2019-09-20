@@ -1,10 +1,8 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
-	"os"
 )
 
 // CleanerConfig is public collection of necessary settings
@@ -19,7 +17,7 @@ type CleanerConfig struct {
 func NewCleanerConfig() *CleanerConfig {
 	return &CleanerConfig{
 		profile:      "",
-		processAll:   true,
+		processAll:   false,
 		stackToClean: "",
 		keep:         0,
 		verbose:      false,
@@ -34,22 +32,27 @@ func (config *CleanerConfig) parseCLIArguments() {
 	flag.BoolVar(&config.verbose, "verbose", false, "Verbose logging.")
 	flag.Parse()
 
-	if config.profile == "" {
-		fmt.Println("No profile set.")
-		flag.PrintDefaults()
-		os.Exit(3)
+}
+
+func (config *CleanerConfig) validate() error {
+	if err := checkStringFlagNotEmpty("profile", config.profile); err != nil {
+		return err
+	}
+
+	if err := checkStringFlagNotEmpty("stack", config.stackToClean); err != nil {
+		return err
 	}
 
 	if config.stackToClean == "all" {
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Println()
-		fmt.Print("Processing on all stacks. Deleting all failed changesets on _all_ stacks. Continue (y/n)? ")
-		text, _ := reader.ReadString('\n')
-		if text != "y\n" {
-			fmt.Println("Coward.")
-			os.Exit(3)
-		}
-	} else {
-		config.processAll = false
+		config.processAll = true
 	}
+
+	return nil
+}
+
+func checkStringFlagNotEmpty(name string, f string) error {
+	if f == "" {
+		return fmt.Errorf("Missing mandatory parameter: %s", name)
+	}
+	return nil
 }
