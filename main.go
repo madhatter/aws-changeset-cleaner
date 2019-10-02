@@ -104,7 +104,8 @@ func fetchChangeSets(cfSvc *cloudformation.CloudFormation, stackName *string) (C
 		}
 	}
 
-	fmt.Printf("%s: %v failed changesets found.\n", changesets.sets[len(changesets.sets)-1].stackName, len(changesets.sets))
+	fmt.Printf("%s: %v changesets found.\n", *stackName, len(changesets.sets))
+
 	return changesets, nil
 }
 
@@ -224,6 +225,7 @@ func fetchStacks(cfSvc *cloudformation.CloudFormation) (Stacks, error) {
 		}
 	}
 
+	fmt.Printf("%v stacks found.\n", len(stacks.stacks))
 	return stacks, nil
 }
 
@@ -259,7 +261,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if config.processAll {
+	if config.processAll && !config.yesyesyes {
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Println()
 		fmt.Print("Processing on all stacks. Deleting all failed changesets on _all_ stacks. Continue (y/n)? ")

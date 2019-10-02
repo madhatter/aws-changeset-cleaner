@@ -12,6 +12,7 @@ type CleanerConfig struct {
 	stackToClean string
 	keep         int
 	verbose      bool
+	yesyesyes    bool
 }
 
 func NewCleanerConfig() *CleanerConfig {
@@ -21,6 +22,7 @@ func NewCleanerConfig() *CleanerConfig {
 		stackToClean: "",
 		keep:         0,
 		verbose:      false,
+		yesyesyes:    false,
 	}
 }
 
@@ -30,6 +32,7 @@ func (config *CleanerConfig) parseCLIArguments() {
 	flag.StringVar(&config.stackToClean, "stack", "all", "Stack to clean {all stacks|<stackname>}.")
 	flag.IntVar(&config.keep, "keep", 10, "Number of changesets to keep.")
 	flag.BoolVar(&config.verbose, "verbose", false, "Verbose logging.")
+	flag.BoolVar(&config.yesyesyes, "yes", false, "Don't bother me. Do it.")
 	flag.Parse()
 
 }
