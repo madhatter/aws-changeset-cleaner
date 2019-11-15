@@ -57,10 +57,16 @@ func createClient(profile *string, verbose bool) {
 		config.WithLogLevel(aws.LogDebugWithRequestRetries)
 	}
 
-	sess, _ = session.NewSessionWithOptions(session.Options{
+	sess, err := session.NewSessionWithOptions(session.Options{
 		Config:  config,
 		Profile: *profile,
 	})
+
+	if err != nil {
+		fmt.Println("Session not created: ", err)
+		os.Exit(127)
+	}
+
 	cfSvc = cloudformation.New(sess)
 }
 
@@ -92,13 +98,17 @@ func fetchChangeSets(cfSvc *cloudformation.CloudFormation, stackName *string) (C
 		for _, v := range output.Summaries {
 			changeset.changeSetID = *v.ChangeSetId
 			changeset.changeSetName = *v.ChangeSetName
-			changeset.creationTime = *v.CreationTime
+			if v.CreationTime != nil {
+				changeset.creationTime = *v.CreationTime
+			}
 			changeset.description = *v.Description
 			changeset.executionStatus = *v.ExecutionStatus
 			changeset.stackID = *v.StackId
 			changeset.stackName = *v.StackName
 			changeset.status = *v.Status
-			changeset.statusReason = *v.StatusReason
+			if v.StatusReason != nil {
+				changeset.statusReason = *v.StatusReason
+			}
 
 			changesets.sets = append(changesets.sets, changeset)
 		}
