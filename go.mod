@@ -1,4 +1,4 @@
-module aws-changeset-cleaner
+module github.com/madhatter/aws-changeset-cleaner
 
 go 1.13
 
