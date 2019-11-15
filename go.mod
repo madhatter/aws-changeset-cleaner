@@ -1,4 +1,4 @@
-module changeset-cleaner
+module aws-changeset-cleaner
 
 go 1.13
 
