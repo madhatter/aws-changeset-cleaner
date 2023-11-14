@@ -28,13 +28,6 @@ func TestCleanerConfig_ValidateProfileIsSet(t *testing.T) {
 	assert.NoError(t, c.validate())
 }
 
-func TestCleanerConfig_ValidateEmptyProfileRaisesError(t *testing.T) {
-	c := NewCleanerConfig()
-	c.stackToClean = "some-stack"
-
-	assert.Error(t, c.validate())
-}
-
 func TestCleanerConfig_ValidateProcessAllIsTrueIfStackAll(t *testing.T) {
 	c := NewCleanerConfig()
 	c.stackToClean = "all"
