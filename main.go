@@ -101,7 +101,9 @@ func fetchChangeSets(cfSvc *cloudformation.CloudFormation, stackName *string) (C
 			if v.CreationTime != nil {
 				changeset.creationTime = *v.CreationTime
 			}
-			changeset.description = *v.Description
+			if v.Description != nil {
+				changeset.description = *v.Description
+			}
 			changeset.executionStatus = *v.ExecutionStatus
 			changeset.stackID = *v.StackId
 			changeset.stackName = *v.StackName
